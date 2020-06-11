@@ -43,6 +43,8 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             # If request media segment, return it
             if file_name.endswith(".ts"):
                 content_type = "video/mp2t"
+            if file_name.endswith(".aac"):
+                content_type = "audio/aac"
             # If request master playlist, return it (it's already prepared
             if self.path == "/playlist.m3u8":
                 content_type = "application/vnd.apple.mpegurl"
