@@ -34,7 +34,7 @@ class VodVariantPlaylist():
         segment_start_time = 0
         # Regex parsing, output will be iteration object with "duration" and "location"
         # for each segment
-        pattern = r"^#EXTINF:(?P<duration>\d+\.\d*|\d+),[^ ](?P<location>.*?\.ts)$"
+        pattern = r"^#EXTINF:(?P<duration>\d+\.\d*|\d+),[^ ](?P<location>.*?\.(ts|aac))$"
         for match in re.finditer(pattern, content, re.M):
             segment_duration = float(match.group("duration"))
             segment_location = os.path.join(path, match.group("location"))
