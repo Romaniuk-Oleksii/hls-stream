@@ -10,9 +10,9 @@ import segment
 import re
 
 class VodVariantPlaylist():
-    def __init__(self, bandwidth, codecs, location): #resolution
+    def __init__(self, bandwidth, resolution, codecs, location):
         self.bandwidth = bandwidth
-        #self.resolution = resolution
+        self.resolution = resolution
         self.codecs = codecs
         if os.path.isfile(location):
             self.target_duration, self.segments = self.parse(location)
@@ -96,8 +96,8 @@ class VodVariantPlaylist():
     resolution, codecs, target segment length.
     """
     def concatenate(self, new_playlist):
-         #new_playlist.resolution != self.resolution or \
         if new_playlist.bandwidth != self.bandwidth or \
+           new_playlist.resolution != self.resolution or \
            new_playlist.codecs != self.codecs or \
            new_playlist.target_duration != self.target_duration:
                raise RuntimeError("Cannot append variant playlist"\

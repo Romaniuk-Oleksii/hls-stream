@@ -25,17 +25,25 @@ class VodMasterPlaylist():
             content = f.read()
         path = os.path.dirname(location)
         # Regex magic intend to find all variant playlists here 
-        #".*?RESOLUTION=(?P<res_width>\d+)x(?P<res_height>\d+),"\
+
         pattern = r"^#EXT-X-STREAM-INF:.*?BANDWIDTH=(?P<bw>\d+),"\
-                   ".*?CODECS=\"(?P<codecs>.*?)\".*?^(?P<variant_playlist>.*?\.m3u8)$"
+            "( .*?RESOLUTION=(?P<res_width>\d+)x(?P<res_height>\d+), )?"\
+            ".*?CODECS=\"(?P<codecs>.*?)\".*?^(?P<variant_playlist>.*?\.m3u8)$"
+        
+
         for match in re.finditer(pattern, content, re.M|re.S):
             bandwidth = int(match.group("bw"))
-            '''resolution = "{}x{}".format(int(match.group("res_width")),
-                                        int(match.group("res_height")))'''
+            
+            resolution = None
+            rw, rh = match.group("res_width"), match.group("res_height")
+            
+            if not rw and not rh:
+                resolution = "{}x{}".format(rw, rh)
+
             codecs = set([c.strip() for c in match.group("codecs").split(',')])
             variant_location = os.path.join(path, match.group("variant_playlist"))
             if os.path.isfile(variant_location):
-                variant = vp.VodVariantPlaylist(bandwidth, codecs, variant_location) #resolution
+                variant = vp.VodVariantPlaylist(bandwidth, resolution, codecs, variant_location)
                 variants.append(variant)
         return sorted(variants) #, key=lambda x:x.resolution
 
@@ -51,8 +59,17 @@ class VodMasterPlaylist():
 
         for variant in self.variants:
             codecs = ", ".join(sorted(variant.codecs))
-            playlist += "#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH={},"\
-                        "CODECS=\"{}\"\n".format(variant.bandwidth, codecs)
+
+            if not variant.resolution:             
+                buff = "#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH={},"\
+                            "RESOLUTION={},CODECS=\"{}\"\n".format(variant.bandwidth, \
+                            variant.resolution, codecs)
+            else:
+                buff = "#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH={},"\
+                            "CODECS=\"{}\"\n".format(variant.bandwidth, codecs)
+            
+            playlist += buff
+
             playlist += "index-{}.m3u8\n".format(index)
             index += 1
         return playlist
