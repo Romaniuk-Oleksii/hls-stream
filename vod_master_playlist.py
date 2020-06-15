@@ -24,30 +24,52 @@ class VodMasterPlaylist():
                         "valid manifest should start with #EXTM3U".format(location))
             content = f.read()
         path = os.path.dirname(location)
-        # Regex magic intend to find all variant playlists here
+        # Regex magic intend to find all variant playlists here 
+
         pattern = r"^#EXT-X-STREAM-INF:.*?BANDWIDTH=(?P<bw>\d+),"\
-                   ".*?RESOLUTION=(?P<res_width>\d+)x(?P<res_height>\d+),"\
-                   ".*?CODECS=\"(?P<codecs>.*?)\".*?^(?P<variant_playlist>.*?\.m3u8)$"
+            "( .*?RESOLUTION=(?P<res_width>\d+)x(?P<res_height>\d+), )?"\
+            ".*?CODECS=\"(?P<codecs>.*?)\".*?^(?P<variant_playlist>.*?\.m3u8)$"
+        
+
         for match in re.finditer(pattern, content, re.M|re.S):
             bandwidth = int(match.group("bw"))
-            resolution = "{}x{}".format(int(match.group("res_width")),
-                                        int(match.group("res_height")))
+            
+            resolution = None
+            rw, rh = match.group("res_width"), match.group("res_height")
+            
+            if not rw and not rh:
+                resolution = "{}x{}".format(rw, rh)
+
             codecs = set([c.strip() for c in match.group("codecs").split(',')])
             variant_location = os.path.join(path, match.group("variant_playlist"))
             if os.path.isfile(variant_location):
-                variant = vp.VodVariantPlaylist(bandwidth, resolution, codecs,
-                        variant_location)
+                variant = vp.VodVariantPlaylist(bandwidth, resolution, codecs, variant_location)
                 variants.append(variant)
-        return sorted(variants, key=lambda x:x.resolution)
+        return sorted(variants) #, key=lambda x:x.resolution
 
     def serialize(self):
         playlist = "#EXTM3U\n"
         index = 0
+        '''
+        if not self.variants:
+            playlist += "#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH={},"\
+                        "CODECS=\"{}\"\n".format("2064000", "mp4a.40.2")
+            playlist += "index-{}.m3u8\n".format(0)     
+        '''       
+
         for variant in self.variants:
             codecs = ", ".join(sorted(variant.codecs))
-            playlist += "#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH={},"\
-                        "RESOLUTION={},CODECS=\"{}\"\n".format(variant.bandwidth,
-                                variant.resolution, codecs)
+
+            if not variant.resolution:             
+                buff = "#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH={},"\
+                            "RESOLUTION={},CODECS=\"{}\"\n".format(variant.bandwidth, \
+                            variant.resolution, codecs)
+            else:
+                buff = "#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH={},"\
+                            "CODECS=\"{}\"\n".format(variant.bandwidth, codecs)
+            
+            playlist += buff
+
             playlist += "index-{}.m3u8\n".format(index)
             index += 1
         return playlist
